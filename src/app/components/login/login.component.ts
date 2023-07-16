@@ -3,6 +3,7 @@ import { FormBuilder, FormControl, FormGroup,Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import ValidateForm from 'src/app/helpers/validateform';
 import { AuthService } from 'src/app/services/auth.service';
+import { UserStoreService } from 'src/app/services/user-store.service';
 
 @Component({
   selector: 'app-login',
@@ -14,7 +15,12 @@ export class LoginComponent implements OnInit {
   isText: boolean = false;
   eyeIcon: string = 'fa-eye-slash';
   loginForm!:FormGroup
-  constructor(private fb:FormBuilder,private auth:AuthService,private router:Router) {
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private router: Router,
+    private userStore: UserStoreService
+    ) {
  
   }
 
@@ -24,18 +30,25 @@ export class LoginComponent implements OnInit {
       password:['',Validators.required]
     })
   }
+
   hidenShowPass() {
     this.isText = !this.isText;
     this.isText ? (this.eyeIcon = 'fa-eye') : (this.eyeIcon = 'fa-eye-slash');
     this.isText ? (this.type = 'text') : (this.type = 'password');
   }
+
   onLogin(){
     if(this.loginForm.valid){
       console.log(this.loginForm.value);
       //send object to database
       this.auth.login(this.loginForm.value).subscribe({
         next:(res=>{
-          alert(res.message)
+          //alert(res.message)
+          this.loginForm.reset();
+          this.auth.storeToken(res.token);
+          const tokenPayload = this.auth.decodedToken();
+          this.userStore.setFullnameForStore(tokenPayload.unique_name);
+          this.userStore.setRoleForStore(tokenPayload.role);
           this.router.navigate(['dashboard']);
         }),
         error:(err)=> {
